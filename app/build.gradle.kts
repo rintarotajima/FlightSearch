@@ -41,6 +41,8 @@ android {
 }
 
 dependencies {
+    // ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Room
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
