@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase
 abstract class FlightSearchDatabase : RoomDatabase() {
     abstract fun airportDao(): AirportDao
 
-    companion object Companion {
+    companion object {
         @Volatile
         private var Instance: FlightSearchDatabase? = null
 
