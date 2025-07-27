@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +36,10 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.flightsearch.data.Airport
+import com.example.flightsearch.ui.FlightSearchViewModel
 import com.example.flightsearch.ui.theme.FlightSearchTheme
 
 class MainActivity : ComponentActivity() {
@@ -54,9 +57,12 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FlightSearchApp() {
-    val textFieldState = rememberTextFieldState()
-    var searchResults by rememberSaveable { mutableStateOf(emptyList<String>()) }
+fun FlightSearchApp(
+    viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.Factory)
+) {
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val airportSuggestions by viewModel.airportSuggestions.collectAsState()
+
     Scaffold(
         topBar = { FlightSearchAppTopBar() }
     ) { paddingValues ->
@@ -66,15 +72,12 @@ fun FlightSearchApp() {
                 .padding(paddingValues)
         ) {
             FlightSearchInput(
-                textFieldState = textFieldState,
-                onSearch = { query ->
-                    searchResults = if (query.isNotBlank()) {
-                        listOf("$query の結果1", "$query の結果2", "$query の結果3")
-                    } else {
-                        emptyList()
-                    }
+                searchQuery = searchQuery,
+                onQueryChange = { newQuery ->
+                    viewModel.onSearchQueryChange(newQuery)
                 },
-                searchResults = searchResults,
+                airportSuggestions = airportSuggestions,
+                onAirportSelected = { },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -84,9 +87,10 @@ fun FlightSearchApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlightSearchInput(
-    textFieldState: TextFieldState,
-    onSearch: (String) -> Unit,
-    searchResults: List<String>,
+    searchQuery: String,
+    onQueryChange: (String) -> Unit,
+    airportSuggestions: List<Airport>,
+    onAirportSelected: (Airport) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 検索バーの展開状態を保持
@@ -103,15 +107,14 @@ fun FlightSearchInput(
                 .semantics { traversalIndex = 0f },
             inputField = {
                 SearchBarDefaults.InputField(
-                    query = textFieldState.text.toString(),
-                    onQueryChange = { textFieldState.edit { replace(0, length,it)} },
+                    query = searchQuery,
+                    onQueryChange = onQueryChange,
                     onSearch = {
-                        onSearch(textFieldState.text.toString())
                         expanded = false
                     },
                     expanded = expanded,
                     onExpandedChange = { expanded = it},
-                    placeholder = {Text("Search")},
+                    placeholder = {Text("空港名またはIATAコードを入力")},
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -123,19 +126,31 @@ fun FlightSearchInput(
             expanded = expanded,
             onExpandedChange = { expanded = it}
         ) {
-            Column(
-                Modifier.verticalScroll(rememberScrollState())
-            ) {
-                searchResults.forEach { result ->
-                    ListItem(
-                        headlineContent = {Text(result)},
-                        modifier = Modifier
-                            .clickable {
-                                textFieldState.edit { replace(0, length, result) }
+            if (airportSuggestions.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(airportSuggestions, key = { airport -> airport.id }) { airport ->
+                        ListItem(
+                            headlineContent = { Text(text = airport.name) },
+                            supportingContent = { Text(text = airport.iataCode) },
+                            modifier = Modifier.clickable {
+                                onAirportSelected(airport)
                                 expanded = false
-                            }
-                            .fillMaxWidth()
-                    )
+                            },
+
+                        )
+
+                    }
+                }
+            } else if (searchQuery.isNotBlank()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(text = "「$searchQuery」に一致する空港が見つかりませんでした。")
                 }
             }
         }
@@ -147,9 +162,13 @@ fun FlightSearchInput(
 @Composable
 fun FlightSearchInputPreview() {
     FlightSearchInput(
-        textFieldState = TextFieldState(),
-        onSearch = {},
-        searchResults = listOf("結果1", "結果2", "結果3")
+       searchQuery = "東京",
+        onQueryChange = {},
+        airportSuggestions = listOf(
+            Airport(1, "羽田空港", "TYO", 1000),
+            Airport(2, "羽田空港", "TYO", 1000),
+        ),
+        onAirportSelected = {}
     )
 }
 
