@@ -6,18 +6,18 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(entities = [Airport::class], version = 1)
-abstract class flightSearchDatabase : RoomDatabase() {
+abstract class FlightSearchDatabase : RoomDatabase() {
     abstract fun airportDao(): AirportDao
 
-    companion object {
+    companion object Companion {
         @Volatile
-        private var Instance: flightSearchDatabase? = null
+        private var Instance: FlightSearchDatabase? = null
 
-        fun getDatabase(context: Context): flightSearchDatabase {
+        fun getDatabase(context: Context): FlightSearchDatabase {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(
                     context,
-                    flightSearchDatabase::class.java,
+                    FlightSearchDatabase::class.java,
                     "flight_search_database"
                 )
                     .createFromAsset("database/flight_search.db")
