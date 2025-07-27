@@ -41,6 +41,10 @@ class FlightSearchViewModel(private val airportDao: AirportDao) : ViewModel() {
             initialValue = emptyList()
         )
 
+    fun onSearchQueryChange(newQuery: String) {
+        _searchQuery.value = newQuery
+    }
+
 //  FlightSearchViewModelをインスタンス化するためのFactoryを定義
 //  AirportDaoがコンストラクタで必要なため、カスタムFactoryを定義
     companion object {
